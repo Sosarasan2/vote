@@ -153,7 +153,7 @@ export default function PlayerPage() {
     const hasPick = pendingVote != null;
     content = (
       <div>
-        <p className="text-center text-slate-500 mb-6">
+        <p className="text-center text-slate-500 mb-5 sm:mb-6 text-sm sm:text-base">
           {hasPick ? "Bạn có thể đổi cho đến khi host khóa" : "Chọn đáp án của bạn"}
         </p>
         <div className="grid gap-3">
@@ -164,19 +164,20 @@ export default function PlayerPage() {
                 key={n}
                 onClick={() => submitVote(n)}
                 disabled={submitting && pendingVote !== n}
-                className={`py-6 rounded-2xl text-2xl font-semibold transition active:scale-[0.98] ${
+                className={`py-5 sm:py-6 rounded-2xl text-xl sm:text-2xl font-semibold transition active:scale-[0.98] flex items-center justify-center gap-2 ${
                   isPicked
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-white shadow-md shadow-primary/20"
                     : "bg-white text-primary border-2 border-slate-200 hover:border-primary"
                 }`}
               >
-                Box {n}
+                <span>Box {n}</span>
+                {isPicked && <span className="text-base">✓</span>}
               </button>
             );
           })}
         </div>
         {hasPick && (
-          <div className="mt-6 text-center text-emerald-600 font-medium">
+          <div className="mt-5 sm:mt-6 text-center text-emerald-600 font-medium text-sm sm:text-base">
             ✓ Đã chọn Box {pendingVote}
           </div>
         )}
@@ -184,47 +185,92 @@ export default function PlayerPage() {
     );
   } else if (phase === "revealed") {
     const myVote = lockedVote ?? state.votes?.[name] ?? null;
+    const didVote = myVote != null;
     const isCorrect = myVote === correct;
-    content = (
-      <div className="text-center py-4">
-        {myVote == null ? (
-          <div className="text-slate-500 mb-6">Bạn không vote round này</div>
-        ) : (
-          <div
-            className={`text-5xl mb-3 ${
-              isCorrect ? "text-emerald-500" : "text-rose-500"
-            }`}
-          >
-            {isCorrect ? "✓" : "✗"}
-          </div>
-        )}
-        {myVote != null && (
-          <div className="text-lg font-medium mb-1">
-            {isCorrect ? "Đúng rồi!" : "Sai mất rồi"}
-          </div>
-        )}
-        <div className="text-sm text-slate-500 mb-6">
-          Đáp án đúng: <span className="font-semibold text-primary">Box {correct}</span>
+
+    let banner;
+    if (!didVote) {
+      banner = (
+        <div className="text-center py-3 px-4 rounded-2xl bg-slate-100 text-slate-600 mb-5">
+          <div className="text-2xl mb-1">—</div>
+          <div className="text-sm font-medium">Bạn không vote round này</div>
         </div>
-        <div className="bg-slate-50 rounded-xl py-4">
+      );
+    } else if (isCorrect) {
+      banner = (
+        <div className="text-center py-4 px-4 rounded-2xl bg-emerald-50 text-emerald-700 mb-5">
+          <div className="text-4xl sm:text-5xl mb-1">✓</div>
+          <div className="text-lg sm:text-xl font-semibold">Đúng rồi!</div>
+        </div>
+      );
+    } else {
+      banner = (
+        <div className="text-center py-4 px-4 rounded-2xl bg-rose-50 text-rose-700 mb-5">
+          <div className="text-4xl sm:text-5xl mb-1">✗</div>
+          <div className="text-lg sm:text-xl font-semibold">Sai mất rồi</div>
+        </div>
+      );
+    }
+
+    content = (
+      <div>
+        {banner}
+        <div className="grid gap-3 mb-5">
+          {[1, 2, 3].map((n) => {
+            const isCorrectBox = n === correct;
+            const isMyWrong = n === myVote && n !== correct;
+            let cls;
+            let icon = null;
+            let label = null;
+            if (isCorrectBox) {
+              cls = "bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20";
+              icon = "✓";
+              label = "Đáp án đúng";
+            } else if (isMyWrong) {
+              cls = "bg-rose-500 text-white border-rose-500";
+              icon = "✗";
+              label = "Bạn chọn";
+            } else {
+              cls = "bg-slate-50 text-slate-400 border-slate-200";
+            }
+            return (
+              <div
+                key={n}
+                className={`py-4 sm:py-5 rounded-2xl text-lg sm:text-xl font-semibold border-2 flex items-center justify-between px-5 ${cls}`}
+              >
+                <span className="flex items-center gap-2">
+                  {icon && <span className="text-base">{icon}</span>}
+                  Box {n}
+                </span>
+                {label && (
+                  <span className="text-[11px] sm:text-xs uppercase tracking-wider font-medium opacity-90">
+                    {label}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="bg-slate-50 rounded-2xl py-4 text-center">
           <div className="text-xs uppercase tracking-wider text-slate-400">Điểm của bạn</div>
-          <div className="text-3xl font-bold text-primary mt-1">{myScore}</div>
+          <div className="text-3xl sm:text-4xl font-bold text-primary mt-1">{myScore}</div>
         </div>
       </div>
     );
   } else if (phase === "finished") {
     const sorted = Object.entries(scores || {}).sort((a, b) => b[1] - a[1]);
     const rank = sorted.findIndex(([n]) => n === name) + 1;
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🏁";
     content = (
-      <div className="text-center py-6">
-        <div className="text-4xl mb-3">🏁</div>
-        <div className="text-xl font-semibold mb-6">Game kết thúc!</div>
-        <div className="bg-slate-50 rounded-xl py-5 mb-3">
+      <div className="text-center py-4 sm:py-6">
+        <div className="text-5xl sm:text-6xl mb-3">{medal}</div>
+        <div className="text-xl sm:text-2xl font-semibold mb-6">Game kết thúc!</div>
+        <div className="bg-slate-50 rounded-2xl py-5 mb-3">
           <div className="text-xs uppercase tracking-wider text-slate-400">Điểm cuối</div>
-          <div className="text-4xl font-bold text-primary mt-1">{myScore}</div>
+          <div className="text-4xl sm:text-5xl font-bold text-primary mt-1">{myScore}</div>
         </div>
         {rank > 0 && (
-          <div className="text-slate-600">
+          <div className="text-slate-600 text-sm sm:text-base">
             Hạng <span className="font-semibold text-primary">{rank}</span> / {sorted.length}
           </div>
         )}
@@ -233,29 +279,35 @@ export default function PlayerPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-start justify-center p-4">
-      <div className="w-full max-w-[420px]">
+    <main className="min-h-screen flex items-start justify-center p-3 sm:p-4 pt-4 sm:pt-6">
+      <div className="w-full max-w-[440px]">
         <header className="flex items-center justify-between mb-4 px-1">
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wider text-slate-400">Player</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400">
+              Player
+            </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-primary truncate max-w-[140px]">{name}</span>
+              <span className="font-semibold text-primary truncate max-w-[160px] sm:max-w-[200px]">
+                {name}
+              </span>
               <button
                 onClick={changeName}
-                className="text-xs text-slate-400 underline underline-offset-2 hover:text-primary"
+                className="text-[11px] sm:text-xs text-slate-400 underline underline-offset-2 hover:text-primary shrink-0"
               >
                 đổi tên
               </button>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider text-slate-400">Round</div>
+          <div className="text-right shrink-0 ml-3">
+            <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400">
+              Round
+            </div>
             <div className="font-semibold text-primary">
               {phase === "finished" ? "10" : round} / 10
             </div>
           </div>
         </header>
-        <div className="bg-white rounded-2xl shadow-sm p-6">{content}</div>
+        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">{content}</div>
         <div className="mt-3 text-center text-xs text-slate-400">
           Điểm hiện tại: {myScore}
         </div>
