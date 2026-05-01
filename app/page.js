@@ -6,8 +6,8 @@ export default function PlayerPage() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [state, setState] = useState(null);
-  const [voted, setVoted] = useState(false);
   const [pendingVote, setPendingVote] = useState(null);
+  const [lockedVote, setLockedVote] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const lastRoundRef = useRef(null);
 
@@ -37,16 +37,21 @@ export default function PlayerPage() {
 
   useEffect(() => {
     if (!state) return;
-    if (lastRoundRef.current !== state.round || state.phase === "voting") {
-      if (lastRoundRef.current !== state.round) {
-        setVoted(false);
-        setPendingVote(null);
-      }
+    if (lastRoundRef.current !== state.round) {
+      setPendingVote(null);
+      setLockedVote(null);
       lastRoundRef.current = state.round;
     }
-    if (state.phase === "voting" && state.votes && state.votes[name] != null) {
-      setVoted(true);
-      setPendingVote(state.votes[name]);
+    if (state.phase === "voting") {
+      const serverVote = state.votes?.[name] ?? null;
+      if (serverVote != null && pendingVote == null) {
+        setPendingVote(serverVote);
+      }
+      setLockedVote(null);
+    } else if (state.phase === "revealed") {
+      const finalVote = state.votes?.[name] ?? pendingVote ?? null;
+      setLockedVote(finalVote);
+      setPendingVote(finalVote);
     }
   }, [state, name]);
 
@@ -62,15 +67,17 @@ export default function PlayerPage() {
     localStorage.removeItem("voti_name");
     setName("");
     setNameInput("");
-    setVoted(false);
     setPendingVote(null);
+    setLockedVote(null);
   };
 
   const submitVote = async (answer) => {
-    if (voted || submitting) return;
+    if (submitting) return;
     if (!state || state.phase !== "voting") return;
-    setSubmitting(true);
+    if (pendingVote === answer) return;
+    const previous = pendingVote;
     setPendingVote(answer);
+    setSubmitting(true);
     try {
       const res = await fetch("/api/vote", {
         method: "POST",
@@ -78,13 +85,11 @@ export default function PlayerPage() {
         body: JSON.stringify({ name, answer }),
       });
       const data = await res.json();
-      if (data.ok) {
-        setVoted(true);
-      } else {
-        setPendingVote(null);
+      if (!data.ok) {
+        setPendingVote(previous);
       }
     } catch {
-      setPendingVote(null);
+      setPendingVote(previous);
     } finally {
       setSubmitting(false);
     }
@@ -140,10 +145,11 @@ export default function PlayerPage() {
       </div>
     );
   } else if (phase === "voting") {
+    const hasPick = pendingVote != null;
     content = (
       <div>
         <p className="text-center text-slate-500 mb-6">
-          {voted ? "Đã vote!" : "Chọn đáp án của bạn"}
+          {hasPick ? "Bạn có thể đổi cho đến khi host khóa" : "Chọn đáp án của bạn"}
         </p>
         <div className="grid gap-3">
           {[1, 2, 3].map((n) => {
@@ -152,12 +158,10 @@ export default function PlayerPage() {
               <button
                 key={n}
                 onClick={() => submitVote(n)}
-                disabled={voted || submitting}
+                disabled={submitting && pendingVote !== n}
                 className={`py-6 rounded-2xl text-2xl font-semibold transition active:scale-[0.98] ${
                   isPicked
                     ? "bg-primary text-white"
-                    : voted
-                    ? "bg-slate-100 text-slate-300"
                     : "bg-white text-primary border-2 border-slate-200 hover:border-primary"
                 }`}
               >
@@ -166,15 +170,15 @@ export default function PlayerPage() {
             );
           })}
         </div>
-        {voted && (
+        {hasPick && (
           <div className="mt-6 text-center text-emerald-600 font-medium">
-            ✓ Đã ghi nhận
+            ✓ Đã chọn Box {pendingVote}
           </div>
         )}
       </div>
     );
   } else if (phase === "revealed") {
-    const myVote = pendingVote;
+    const myVote = lockedVote ?? state.votes?.[name] ?? null;
     const isCorrect = myVote === correct;
     content = (
       <div className="text-center py-4">
