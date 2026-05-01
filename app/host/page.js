@@ -62,11 +62,12 @@ export default function HostPage() {
     );
   }
 
-  const { round, phase, correct, votes = {}, scores = {} } = state;
+  const { round, phase, correct, votes = {}, scores = {}, players = {} } = state;
+  const nameOf = (id) => players[id] || "(không tên)";
 
   const tally = { 1: [], 2: [], 3: [] };
-  for (const [player, vote] of Object.entries(votes)) {
-    if (tally[vote]) tally[vote].push(player);
+  for (const [id, vote] of Object.entries(votes)) {
+    if (tally[vote]) tally[vote].push(id);
   }
 
   const leaderboard = Object.entries(scores).sort((a, b) => b[1] - a[1]);
@@ -210,9 +211,9 @@ export default function HostPage() {
                         Box {n}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {tally[n].map((p) => (
+                        {tally[n].map((id) => (
                           <span
-                            key={p}
+                            key={id}
                             className={`text-sm px-2.5 py-1 rounded-full ${
                               phase === "revealed" && correct === n
                                 ? "bg-emerald-100 text-emerald-700"
@@ -221,7 +222,7 @@ export default function HostPage() {
                                 : "bg-slate-100 text-slate-700"
                             }`}
                           >
-                            {p}
+                            {nameOf(id)}
                           </span>
                         ))}
                       </div>
@@ -240,9 +241,9 @@ export default function HostPage() {
               </div>
             ) : (
               <ol className="space-y-2">
-                {leaderboard.map(([player, score], idx) => (
+                {leaderboard.map(([id, score], idx) => (
                   <li
-                    key={player}
+                    key={id}
                     className={`flex items-center justify-between rounded-xl px-4 py-3 ${
                       idx < 3 ? "bg-slate-50" : ""
                     }`}
@@ -251,7 +252,7 @@ export default function HostPage() {
                       <span className="w-6 text-center text-sm">
                         {idx < 3 ? medals[idx] : <span className="text-slate-400">{idx + 1}</span>}
                       </span>
-                      <span className="font-medium text-slate-700 truncate">{player}</span>
+                      <span className="font-medium text-slate-700 truncate">{nameOf(id)}</span>
                     </div>
                     <span className="font-bold text-primary">{score}</span>
                   </li>

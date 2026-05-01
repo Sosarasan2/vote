@@ -2,7 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 
+function generateDeviceId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getOrCreateDeviceId() {
+  if (typeof window === "undefined") return null;
+  let id = localStorage.getItem("voti_device_id");
+  if (!id) {
+    id = generateDeviceId();
+    localStorage.setItem("voti_device_id", id);
+  }
+  return id;
+}
+
 export default function PlayerPage() {
+  const [deviceId, setDeviceId] = useState(null);
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [state, setState] = useState(null);
@@ -13,19 +31,21 @@ export default function PlayerPage() {
   const lastRoundRef = useRef(null);
 
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? localStorage.getItem("voti_name") : null;
-    if (saved) {
+    const id = getOrCreateDeviceId();
+    setDeviceId(id);
+    const saved = localStorage.getItem("voti_name");
+    if (saved && id) {
       setName(saved);
       fetch("/api/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: saved }),
+        body: JSON.stringify({ deviceId: id, name: saved }),
       }).catch(() => {});
     }
   }, []);
 
   useEffect(() => {
-    if (!name) return undefined;
+    if (!name || !deviceId) return undefined;
     let cancelled = false;
     const tick = async () => {
       try {
@@ -41,10 +61,10 @@ export default function PlayerPage() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [name]);
+  }, [name, deviceId]);
 
   useEffect(() => {
-    if (!state) return;
+    if (!state || !deviceId) return;
 
     if (lastRoundRef.current !== state.round) {
       setPendingVote(null);
@@ -55,15 +75,15 @@ export default function PlayerPage() {
     if (state.phase === "voting") {
       setLockedVote(null);
       if (!submittingRef.current) {
-        setPendingVote(state.votes?.[name] ?? null);
+        setPendingVote(state.votes?.[deviceId] ?? null);
       }
     } else if (state.phase === "revealed") {
-      setLockedVote(state.votes?.[name] ?? null);
+      setLockedVote(state.votes?.[deviceId] ?? null);
     } else {
       setPendingVote(null);
       setLockedVote(null);
     }
-  }, [state, name]);
+  }, [state, deviceId]);
 
   const saveName = async () => {
     const trimmed = nameInput.trim();
@@ -74,18 +94,16 @@ export default function PlayerPage() {
       await fetch("/api/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({ deviceId, name: trimmed }),
       });
     } catch {}
   };
 
   const changeName = () => {
-    if (!confirm("Đổi tên? Điểm hiện tại sẽ giữ nguyên dưới tên cũ.")) return;
+    if (!confirm("Đổi tên? Điểm hiện tại của bạn sẽ giữ nguyên (đổi nhãn thôi).")) return;
     localStorage.removeItem("voti_name");
     setName("");
     setNameInput("");
-    setPendingVote(null);
-    setLockedVote(null);
   };
 
   const submitVote = async (answer) => {
@@ -100,7 +118,7 @@ export default function PlayerPage() {
       const res = await fetch("/api/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, answer }),
+        body: JSON.stringify({ deviceId, name, answer }),
       });
       const data = await res.json();
       if (!data.ok) {
@@ -119,10 +137,7 @@ export default function PlayerPage() {
       <main className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-sm p-6">
           <h1 className="text-2xl font-semibold text-primary mb-1">2 Sự thật 1 Lời nói dối</h1>
-          <p className="text-sm text-slate-500 mb-2">Nhập tên của bạn để bắt đầu</p>
-          <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-5">
-            ⚠ Mỗi người dùng tên khác nhau. Trùng tên sẽ bị tính chung điểm!
-          </p>
+          <p className="text-sm text-slate-500 mb-5">Nhập tên của bạn để bắt đầu</p>
           <input
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
@@ -154,8 +169,8 @@ export default function PlayerPage() {
     );
   }
 
-  const { round, phase, correct, scores } = state;
-  const myScore = scores?.[name] ?? 0;
+  const { round, phase, correct, scores, players = {} } = state;
+  const myScore = scores?.[deviceId] ?? 0;
   const participantCount = Object.keys(scores || {}).length;
 
   let content = null;
@@ -202,7 +217,7 @@ export default function PlayerPage() {
       </div>
     );
   } else if (phase === "revealed") {
-    const myVote = lockedVote ?? state.votes?.[name] ?? null;
+    const myVote = lockedVote ?? state.votes?.[deviceId] ?? null;
     const didVote = myVote != null;
     const isCorrect = myVote === correct;
 
@@ -277,7 +292,7 @@ export default function PlayerPage() {
     );
   } else if (phase === "finished") {
     const sorted = Object.entries(scores || {}).sort((a, b) => b[1] - a[1]);
-    const rank = sorted.findIndex(([n]) => n === name) + 1;
+    const rank = sorted.findIndex(([id]) => id === deviceId) + 1;
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🏁";
     content = (
       <div className="text-center py-4 sm:py-6">
@@ -333,7 +348,11 @@ export default function PlayerPage() {
         </header>
         <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">{content}</div>
 
-        <Leaderboard scores={scores} currentName={name} />
+        <Leaderboard
+          scores={scores}
+          players={players}
+          currentDeviceId={deviceId}
+        />
 
 
         <div className="mt-3 text-center text-xs text-slate-400">
@@ -344,13 +363,14 @@ export default function PlayerPage() {
   );
 }
 
-function Leaderboard({ scores, currentName }) {
+function Leaderboard({ scores, players = {}, currentDeviceId }) {
   const sorted = Object.entries(scores || {}).sort((a, b) => b[1] - a[1]);
   const medals = ["🥇", "🥈", "🥉"];
   const top = sorted.slice(0, 10);
-  const myRank = sorted.findIndex(([n]) => n === currentName);
+  const myRank = sorted.findIndex(([id]) => id === currentDeviceId);
   const inTop = myRank > -1 && myRank < 10;
   const myEntry = myRank > -1 ? sorted[myRank] : null;
+  const nameOf = (id) => players[id] || "(không tên)";
 
   return (
     <div className="mt-4 bg-white rounded-2xl shadow-sm p-5 sm:p-6">
@@ -369,11 +389,11 @@ function Leaderboard({ scores, currentName }) {
         </div>
       ) : (
         <ol className="space-y-1.5">
-          {top.map(([player, score], idx) => {
-            const isMe = player === currentName;
+          {top.map(([id, score], idx) => {
+            const isMe = id === currentDeviceId;
             return (
               <li
-                key={player}
+                key={id}
                 className={`flex items-center justify-between rounded-xl px-3 py-2 ${
                   isMe
                     ? "bg-primary/10 ring-1 ring-primary/20"
@@ -395,7 +415,7 @@ function Leaderboard({ scores, currentName }) {
                       isMe ? "font-semibold text-primary" : "text-slate-700"
                     }`}
                   >
-                    {player}
+                    {nameOf(id)}
                     {isMe && (
                       <span className="ml-1.5 text-[10px] uppercase tracking-wider text-primary/70">
                         bạn
@@ -421,7 +441,7 @@ function Leaderboard({ scores, currentName }) {
                 {myRank + 1}
               </span>
               <span className="truncate text-sm sm:text-base font-semibold text-primary">
-                {myEntry[0]}
+                {nameOf(myEntry[0])}
                 <span className="ml-1.5 text-[10px] uppercase tracking-wider text-primary/70">
                   bạn
                 </span>
