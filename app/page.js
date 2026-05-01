@@ -308,10 +308,107 @@ export default function PlayerPage() {
           </div>
         </header>
         <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">{content}</div>
+
+        <Leaderboard scores={scores} currentName={name} />
+
+
         <div className="mt-3 text-center text-xs text-slate-400">
           Điểm hiện tại: {myScore}
         </div>
       </div>
     </main>
+  );
+}
+
+function Leaderboard({ scores, currentName }) {
+  const sorted = Object.entries(scores || {}).sort((a, b) => b[1] - a[1]);
+  const medals = ["🥇", "🥈", "🥉"];
+  const top = sorted.slice(0, 10);
+  const myRank = sorted.findIndex(([n]) => n === currentName);
+  const inTop = myRank > -1 && myRank < 10;
+  const myEntry = myRank > -1 ? sorted[myRank] : null;
+
+  return (
+    <div className="mt-4 bg-white rounded-2xl shadow-sm p-5 sm:p-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-primary">Bảng xếp hạng</h2>
+        {sorted.length > 0 && (
+          <span className="text-[11px] text-slate-400 uppercase tracking-wider">
+            {sorted.length} người
+          </span>
+        )}
+      </div>
+
+      {sorted.length === 0 ? (
+        <div className="text-sm text-slate-400 text-center py-4">
+          Chưa có ai có điểm
+        </div>
+      ) : (
+        <ol className="space-y-1.5">
+          {top.map(([player, score], idx) => {
+            const isMe = player === currentName;
+            return (
+              <li
+                key={player}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+                  isMe
+                    ? "bg-primary/10 ring-1 ring-primary/20"
+                    : idx < 3
+                    ? "bg-slate-50"
+                    : ""
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-6 text-center text-sm shrink-0">
+                    {idx < 3 ? (
+                      medals[idx]
+                    ) : (
+                      <span className="text-slate-400">{idx + 1}</span>
+                    )}
+                  </span>
+                  <span
+                    className={`truncate text-sm sm:text-base ${
+                      isMe ? "font-semibold text-primary" : "text-slate-700"
+                    }`}
+                  >
+                    {player}
+                    {isMe && (
+                      <span className="ml-1.5 text-[10px] uppercase tracking-wider text-primary/70">
+                        bạn
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <span className="font-bold text-primary tabular-nums">
+                  {score}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {!inTop && myEntry && (
+        <>
+          <div className="my-2 text-center text-xs text-slate-300">···</div>
+          <div className="flex items-center justify-between rounded-xl px-3 py-2 bg-primary/10 ring-1 ring-primary/20">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-6 text-center text-sm text-primary shrink-0">
+                {myRank + 1}
+              </span>
+              <span className="truncate text-sm sm:text-base font-semibold text-primary">
+                {myEntry[0]}
+                <span className="ml-1.5 text-[10px] uppercase tracking-wider text-primary/70">
+                  bạn
+                </span>
+              </span>
+            </div>
+            <span className="font-bold text-primary tabular-nums">
+              {myEntry[1]}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
