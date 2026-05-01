@@ -9,6 +9,7 @@ export default function PlayerPage() {
   const [pendingVote, setPendingVote] = useState(null);
   const [lockedVote, setLockedVote] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const lastRoundRef = useRef(null);
 
   useEffect(() => {
@@ -37,21 +38,23 @@ export default function PlayerPage() {
 
   useEffect(() => {
     if (!state) return;
+
     if (lastRoundRef.current !== state.round) {
       setPendingVote(null);
       setLockedVote(null);
       lastRoundRef.current = state.round;
     }
+
     if (state.phase === "voting") {
-      const serverVote = state.votes?.[name] ?? null;
-      if (serverVote != null && pendingVote == null) {
-        setPendingVote(serverVote);
-      }
       setLockedVote(null);
+      if (!submittingRef.current) {
+        setPendingVote(state.votes?.[name] ?? null);
+      }
     } else if (state.phase === "revealed") {
-      const finalVote = state.votes?.[name] ?? pendingVote ?? null;
-      setLockedVote(finalVote);
-      setPendingVote(finalVote);
+      setLockedVote(state.votes?.[name] ?? null);
+    } else {
+      setPendingVote(null);
+      setLockedVote(null);
     }
   }, [state, name]);
 
@@ -77,6 +80,7 @@ export default function PlayerPage() {
     if (pendingVote === answer) return;
     const previous = pendingVote;
     setPendingVote(answer);
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const res = await fetch("/api/vote", {
@@ -91,6 +95,7 @@ export default function PlayerPage() {
     } catch {
       setPendingVote(previous);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
