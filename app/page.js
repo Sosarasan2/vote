@@ -57,6 +57,15 @@ export default function PlayerPage() {
     setName(trimmed);
   };
 
+  const changeName = () => {
+    if (!confirm("Đổi tên? Điểm hiện tại sẽ giữ nguyên dưới tên cũ.")) return;
+    localStorage.removeItem("voti_name");
+    setName("");
+    setNameInput("");
+    setVoted(false);
+    setPendingVote(null);
+  };
+
   const submitVote = async (answer) => {
     if (voted || submitting) return;
     if (!state || state.phase !== "voting") return;
@@ -218,9 +227,17 @@ export default function PlayerPage() {
     <main className="min-h-screen flex items-start justify-center p-4">
       <div className="w-full max-w-[420px]">
         <header className="flex items-center justify-between mb-4 px-1">
-          <div>
+          <div className="min-w-0">
             <div className="text-xs uppercase tracking-wider text-slate-400">Player</div>
-            <div className="font-semibold text-primary truncate max-w-[180px]">{name}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-primary truncate max-w-[140px]">{name}</span>
+              <button
+                onClick={changeName}
+                className="text-xs text-slate-400 underline underline-offset-2 hover:text-primary"
+              >
+                đổi tên
+              </button>
+            </div>
           </div>
           <div className="text-right">
             <div className="text-xs uppercase tracking-wider text-slate-400">Round</div>
