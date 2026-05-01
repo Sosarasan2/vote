@@ -14,7 +14,14 @@ export default function PlayerPage() {
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("voti_name") : null;
-    if (saved) setName(saved);
+    if (saved) {
+      setName(saved);
+      fetch("/api/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: saved }),
+      }).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -58,11 +65,18 @@ export default function PlayerPage() {
     }
   }, [state, name]);
 
-  const saveName = () => {
+  const saveName = async () => {
     const trimmed = nameInput.trim();
     if (!trimmed) return;
     localStorage.setItem("voti_name", trimmed);
     setName(trimmed);
+    try {
+      await fetch("/api/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+    } catch {}
   };
 
   const changeName = () => {
@@ -105,7 +119,10 @@ export default function PlayerPage() {
       <main className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-sm p-6">
           <h1 className="text-2xl font-semibold text-primary mb-1">2 Sự thật 1 Lời nói dối</h1>
-          <p className="text-sm text-slate-500 mb-6">Nhập tên của bạn để bắt đầu</p>
+          <p className="text-sm text-slate-500 mb-2">Nhập tên của bạn để bắt đầu</p>
+          <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-5">
+            ⚠ Mỗi người dùng tên khác nhau. Trùng tên sẽ bị tính chung điểm!
+          </p>
           <input
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
@@ -139,6 +156,7 @@ export default function PlayerPage() {
 
   const { round, phase, correct, scores } = state;
   const myScore = scores?.[name] ?? 0;
+  const participantCount = Object.keys(scores || {}).length;
 
   let content = null;
 
@@ -281,13 +299,13 @@ export default function PlayerPage() {
   return (
     <main className="min-h-screen flex items-start justify-center p-3 sm:p-4 pt-4 sm:pt-6">
       <div className="w-full max-w-[440px]">
-        <header className="flex items-center justify-between mb-4 px-1">
+        <header className="flex items-center justify-between mb-4 px-1 gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400">
               Player
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-primary truncate max-w-[160px] sm:max-w-[200px]">
+              <span className="font-semibold text-primary truncate max-w-[140px] sm:max-w-[180px]">
                 {name}
               </span>
               <button
@@ -298,7 +316,13 @@ export default function PlayerPage() {
               </button>
             </div>
           </div>
-          <div className="text-right shrink-0 ml-3">
+          <div className="text-center shrink-0">
+            <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400">
+              Người chơi
+            </div>
+            <div className="font-semibold text-primary">👥 {participantCount}</div>
+          </div>
+          <div className="text-right shrink-0">
             <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400">
               Round
             </div>

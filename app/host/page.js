@@ -71,21 +71,34 @@ export default function HostPage() {
 
   const leaderboard = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   const medals = ["🥇", "🥈", "🥉"];
+  const participantCount = leaderboard.length;
+  const votedCount = Object.keys(votes).length;
 
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
+        <header className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-primary">2 Sự thật 1 Lời nói dối</h1>
             <p className="text-sm text-slate-500">Host control panel</p>
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider text-slate-400">Round</div>
-            <div className="text-3xl font-bold text-primary">
-              {phase === "finished" ? "10" : round} / 10
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <div className="text-xs uppercase tracking-wider text-slate-400">Người chơi</div>
+              <div className="text-3xl font-bold text-primary">👥 {participantCount}</div>
+              {phase === "voting" && (
+                <div className="text-xs text-slate-400 mt-1">
+                  {votedCount} đã vote
+                </div>
+              )}
             </div>
-            <div className="text-xs text-slate-400 mt-1">phase: {phase}</div>
+            <div className="text-right">
+              <div className="text-xs uppercase tracking-wider text-slate-400">Round</div>
+              <div className="text-3xl font-bold text-primary">
+                {phase === "finished" ? "10" : round} / 10
+              </div>
+              <div className="text-xs text-slate-400 mt-1">phase: {phase}</div>
+            </div>
           </div>
         </header>
 
