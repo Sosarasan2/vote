@@ -189,7 +189,7 @@ export default function PlayerPage() {
         <p className="text-center text-slate-500 mb-5 sm:mb-6 text-sm sm:text-base">
           {hasPick ? "Bạn có thể đổi cho đến khi host khóa" : "Chọn đáp án của bạn"}
         </p>
-        <div className="grid gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {[1, 2, 3].map((n) => {
             const isPicked = pendingVote === n;
             return (
@@ -197,21 +197,34 @@ export default function PlayerPage() {
                 key={n}
                 onClick={() => submitVote(n)}
                 disabled={submitting && pendingVote !== n}
-                className={`py-5 sm:py-6 rounded-2xl text-xl sm:text-2xl font-semibold transition active:scale-[0.98] flex items-center justify-center gap-2 ${
+                className={`relative aspect-[3/4] rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-between transition active:scale-[0.97] ${
                   isPicked
-                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                    ? "bg-primary text-white shadow-md shadow-primary/30"
                     : "bg-white text-primary border-2 border-slate-200 hover:border-primary"
                 }`}
               >
-                <span>Box {n}</span>
-                {isPicked && <span className="text-base">✓</span>}
+                <div
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-base sm:text-lg self-start ${
+                    isPicked
+                      ? "bg-white/20 text-white"
+                      : "bg-primary text-white"
+                  }`}
+                >
+                  {n}
+                </div>
+                <div className="text-sm sm:text-base font-semibold w-full text-center pb-1">
+                  Card {n}
+                </div>
+                {isPicked && (
+                  <span className="absolute top-2 right-2 text-xs">✓</span>
+                )}
               </button>
             );
           })}
         </div>
         {hasPick && (
           <div className="mt-5 sm:mt-6 text-center text-emerald-600 font-medium text-sm sm:text-base">
-            ✓ Đã chọn Box {pendingVote}
+            ✓ Đã chọn Card {pendingVote}
           </div>
         )}
       </div>
@@ -248,37 +261,50 @@ export default function PlayerPage() {
     content = (
       <div>
         {banner}
-        <div className="grid gap-3 mb-5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
           {[1, 2, 3].map((n) => {
-            const isCorrectBox = n === correct;
+            const isCorrectCard = n === correct;
             const isMyWrong = n === myVote && n !== correct;
-            let cls;
-            let icon = null;
+            let cardCls;
+            let badgeCls;
             let label = null;
-            if (isCorrectBox) {
-              cls = "bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20";
-              icon = "✓";
+            if (isCorrectCard) {
+              cardCls = "bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/30";
+              badgeCls = "bg-white/20 text-white";
               label = "Đáp án đúng";
             } else if (isMyWrong) {
-              cls = "bg-rose-500 text-white border-rose-500";
-              icon = "✗";
+              cardCls = "bg-rose-500 text-white border-rose-500";
+              badgeCls = "bg-white/20 text-white";
               label = "Bạn chọn";
             } else {
-              cls = "bg-slate-50 text-slate-400 border-slate-200";
+              cardCls = "bg-slate-50 text-slate-400 border-slate-200";
+              badgeCls = "bg-slate-300 text-white";
             }
             return (
               <div
                 key={n}
-                className={`py-4 sm:py-5 rounded-2xl text-lg sm:text-xl font-semibold border-2 flex items-center justify-between px-5 ${cls}`}
+                className={`relative aspect-[3/4] rounded-2xl p-2.5 sm:p-3 border-2 flex flex-col items-center justify-between ${cardCls}`}
               >
-                <span className="flex items-center gap-2">
-                  {icon && <span className="text-base">{icon}</span>}
-                  Box {n}
-                </span>
-                {label && (
-                  <span className="text-[11px] sm:text-xs uppercase tracking-wider font-medium opacity-90">
-                    {label}
-                  </span>
+                <div
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-base sm:text-lg self-start ${badgeCls}`}
+                >
+                  {n}
+                </div>
+                <div className="w-full text-center pb-1">
+                  <div className="text-sm sm:text-base font-semibold">
+                    Card {n}
+                  </div>
+                  {label && (
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider font-medium opacity-90 mt-0.5">
+                      {label}
+                    </div>
+                  )}
+                </div>
+                {isCorrectCard && (
+                  <span className="absolute top-2 right-2 text-xs">✓</span>
+                )}
+                {isMyWrong && (
+                  <span className="absolute top-2 right-2 text-xs">✗</span>
                 )}
               </div>
             );

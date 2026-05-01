@@ -131,7 +131,7 @@ export default function HostPage() {
                             : "bg-white text-primary border-slate-200 hover:border-primary"
                         }`}
                       >
-                        Box {n}
+                        Card {n}
                       </button>
                     ))}
                   </div>
@@ -148,7 +148,7 @@ export default function HostPage() {
               {phase === "revealed" && (
                 <div>
                   <div className="mb-4 text-center bg-emerald-50 text-emerald-700 rounded-xl py-3">
-                    Đáp án đúng: <span className="font-semibold">Box {correct}</span>
+                    Đáp án đúng: <span className="font-semibold">Card {correct}</span>
                   </div>
                   <button
                     onClick={onNext}
@@ -190,7 +190,7 @@ export default function HostPage() {
                     }`}
                   >
                     <div className="text-xs uppercase tracking-wider text-slate-400">
-                      Box {n}
+                      Card {n}
                     </div>
                     <div className="text-3xl font-bold text-primary mt-1">
                       {tally[n].length}
@@ -208,7 +208,7 @@ export default function HostPage() {
                   tally[n].length > 0 ? (
                     <div key={n}>
                       <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
-                        Box {n}
+                        Card {n}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {tally[n].map((id) => (
